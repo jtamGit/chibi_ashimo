@@ -1,3 +1,25 @@
+def servo_ctrl(servo_L: number, servo_R: number):
+    if servo_mode == 0:
+        pins.digital_write_pin(DigitalPin.P0, 0)
+        pins.digital_write_pin(DigitalPin.P1, 0)
+    else:
+        if servo_R == spd_stop:
+            servos.P0.set_pulse(servo_R)
+        else:
+            servos.P0.set_pulse(servo_R)
+        if servo_L == spd_stop:
+            servos.P1.set_pulse(servo_L)
+        else:
+            servos.P1.set_pulse(servo_L)
+
+def on_button_pressed_a():
+    global servo_mode
+    if servo_mode == 0:
+        servo_mode = 1
+    else:
+        servo_mode = 0
+input.on_button_pressed(Button.A, on_button_pressed_a)
+
 def on_received_string(receivedString):
     serial.write_string(receivedString)
     led.toggle(0, 0)
@@ -42,12 +64,14 @@ res = ""
 y_bar = 0
 x_bar = 0
 button = 0
+servo_mode = 0
 mode = 0
+spd_stop = 0
 spd_stop = 1500
 R_spd_H = 1500 - 50
-R_spd_L = 1500 - 0
+R_spd_L = 1500 - 10
 L_spd_H = 1500 + 50
-L_spd_L = 1500 + 0
+L_spd_L = 1500 + 10
 servos.P0.stop()
 servos.P1.stop()
 radio.set_group(1)
@@ -78,32 +102,27 @@ def on_forever():
     if mode == 0:
         sencer = pins.analog_read_pin(AnalogReadWritePin.P2)
         if sencer < 134:
-            # 左:ON  右:ON
-            servos.P0.set_pulse(R_spd_H)
-            servos.P1.set_pulse(L_spd_H)
+            servo_ctrl(L_spd_H, R_spd_H)
             sensor_old = sencer
         elif sencer < 390:
-            # 左:OFF  右:ON
-            servos.P0.set_pulse(R_spd_L)
-            servos.P1.set_pulse(L_spd_H)
+            servo_ctrl(L_spd_H, R_spd_L)
             sensor_old = sencer
         elif sencer < 646:
-            # 左:ON  右:OFF
-            servos.P0.set_pulse(R_spd_H)
-            servos.P1.set_pulse(L_spd_L)
+            servo_ctrl(L_spd_L, R_spd_H)
             sensor_old = sencer
         elif sensor_old < 390:
-            servos.P0.stop()
-            servos.P1.set_pulse(L_spd_L)
+            servo_ctrl(L_spd_H, spd_stop)
         elif sensor_old < 646:
-            servos.P0.set_pulse(R_spd_L)
-            servos.P1.stop()
+            servo_ctrl(spd_stop, R_spd_H)
         else:
-            servos.P0.stop()
-            servos.P1.stop()
+            servo_ctrl(L_spd_H, R_spd_H)
     else:
         sound_template()
-        y_speed = y_bar - 499
-        servos.P0.set_pulse(1500 - y_speed + (x_bar - 480) / 2)
-        servos.P1.set_pulse(1500 + y_speed + (x_bar - 480) / 2)
+        if servo_mode == 0:
+            pins.digital_write_pin(DigitalPin.P0, 0)
+            pins.digital_write_pin(DigitalPin.P1, 0)
+        else:
+            y_speed = y_bar - 499
+            servos.P0.set_pulse(1500 - y_speed + (x_bar - 480) / 2)
+            servos.P1.set_pulse(1500 + y_speed + (x_bar - 480) / 2)
 basic.forever(on_forever)

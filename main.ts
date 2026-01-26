@@ -1,3 +1,27 @@
+function servo_ctrl (servo_L: number, servo_R: number) {
+    if (servo_mode == 0) {
+        pins.digitalWritePin(DigitalPin.P0, 0)
+        pins.digitalWritePin(DigitalPin.P1, 0)
+    } else {
+        if (servo_R == spd_stop) {
+            servos.P0.setPulse(servo_R)
+        } else {
+            servos.P0.setPulse(servo_R)
+        }
+        if (servo_L == spd_stop) {
+            servos.P1.setPulse(servo_L)
+        } else {
+            servos.P1.setPulse(servo_L)
+        }
+    }
+}
+input.onButtonPressed(Button.A, function () {
+    if (servo_mode == 0) {
+        servo_mode = 1
+    } else {
+        servo_mode = 0
+    }
+})
 radio.onReceivedString(function (receivedString) {
     serial.writeString(receivedString)
     led.toggle(0, 0)
@@ -43,12 +67,14 @@ let res = ""
 let y_bar = 0
 let x_bar = 0
 let button = 0
+let servo_mode = 0
 let mode = 0
-let spd_stop = 1500
+let spd_stop = 0
+spd_stop = 1500
 let R_spd_H = 1500 - 50
-let R_spd_L = 1500 - 0
+let R_spd_L = 1500 - 10
 let L_spd_H = 1500 + 50
-let L_spd_L = 1500 + 0
+let L_spd_L = 1500 + 10
 servos.P0.stop()
 servos.P1.stop()
 radio.setGroup(1)
@@ -84,34 +110,30 @@ res = serial.readString()
     if (mode == 0) {
         sencer = pins.analogReadPin(AnalogReadWritePin.P2)
         if (sencer < 134) {
-            // 左:ON  右:ON
-            servos.P0.setPulse(R_spd_H)
-            servos.P1.setPulse(L_spd_H)
+            servo_ctrl(L_spd_H, R_spd_H)
             sensor_old = sencer
         } else if (sencer < 390) {
-            // 左:OFF  右:ON
-            servos.P0.setPulse(R_spd_L)
-            servos.P1.setPulse(L_spd_H)
+            servo_ctrl(L_spd_H, R_spd_L)
             sensor_old = sencer
         } else if (sencer < 646) {
-            // 左:ON  右:OFF
-            servos.P0.setPulse(R_spd_H)
-            servos.P1.setPulse(L_spd_L)
+            servo_ctrl(L_spd_L, R_spd_H)
             sensor_old = sencer
         } else if (sensor_old < 390) {
-            servos.P0.stop()
-            servos.P1.setPulse(L_spd_L)
+            servo_ctrl(L_spd_H, spd_stop)
         } else if (sensor_old < 646) {
-            servos.P0.setPulse(R_spd_L)
-            servos.P1.stop()
+            servo_ctrl(spd_stop, R_spd_H)
         } else {
-            servos.P0.stop()
-            servos.P1.stop()
+            servo_ctrl(L_spd_H, R_spd_H)
         }
     } else {
         sound_template()
-        y_speed = y_bar - 499
-        servos.P0.setPulse(1500 - y_speed + (x_bar - 480) / 2)
-        servos.P1.setPulse(1500 + y_speed + (x_bar - 480) / 2)
+        if (servo_mode == 0) {
+            pins.digitalWritePin(DigitalPin.P0, 0)
+            pins.digitalWritePin(DigitalPin.P1, 0)
+        } else {
+            y_speed = y_bar - 499
+            servos.P0.setPulse(1500 - y_speed + (x_bar - 480) / 2)
+            servos.P1.setPulse(1500 + y_speed + (x_bar - 480) / 2)
+        }
     }
 })
